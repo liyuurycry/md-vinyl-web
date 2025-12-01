@@ -1,54 +1,59 @@
 'use client';
-import ReactPlayer from 'react-player'; 
 import { usePlayerStore, DEMO_PLAYLIST } from '@/store/usePlayerStore';
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+
+const ReactPlayer = dynamic(() => import('react-player'), { ssr: false }) as any;
 
 export default function HiddenPlayer() {
   const { isPlaying, currentIndex, nextTrack, setPlay } = usePlayerStore();
   const currentSong = DEMO_PLAYLIST[currentIndex];
   
   const [isClient, setIsClient] = useState(false);
-  const [isReady, setIsReady] = useState(false);
+  const [isVideoReady, setVideoReady] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // 切換歌曲時，先鎖定狀態，避免 AbortError
+  useEffect(() => {
+    setVideoReady(false);
+  }, [currentSong.youtubeId]);
 
   if (!isClient) return null;
 
   return (
     <div className="fixed bottom-0 right-0 opacity-0 pointer-events-none w-1 h-1 overflow-hidden">
       <ReactPlayer
-        // ⭐ 關鍵修改：加上 key。
-        // 當 currentSong.id 改變時，React 會完全銷毀並重建這個元件。
-        // 這會自動重置 internal state，避免 AbortError，也不需要手動處理 onBuffer。
-        key={currentSong.youtubeId}
-
         url={`https://www.youtube.com/watch?v=${currentSong.youtubeId}`}
         
-        // 只有當播放器載入完成 (isReady) 且 全域狀態是播放中 (isPlaying) 時，才真的播放
-        playing={isReady && isPlaying}
+        // 只有當 用戶想播 且 影片已緩衝完畢 才送出播放指令
+        playing={isPlaying && isVideoReady}
         
         controls={false}
+        muted={false}
         volume={1}
         width="100%"
         height="100%"
         
-        // 當新歌載入完成，解鎖 isReady
-        onReady={() => setIsReady(true)}
-        
+        onReady={() => setVideoReady(true)}
         onEnded={nextTrack}
         
-        // 發生錯誤時 (例如影片被刪除)，自動跳下一首，避免卡住
         onError={(e: any) => {
             console.log('Player error:', e);
-            nextTrack();
         }}
 
         playsinline={true} 
         config={{
           youtube: {
-            playerVars: { showinfo: 0, controls: 0, modestbranding: 1 }
+            playerVars: { 
+              showinfo: 0, 
+              controls: 0, 
+              modestbranding: 1,
+              origin: typeof window !== 'undefined' ? window.location.origin : undefined,
+              autoplay: 1
+            }
           } as any
         }}
       />
