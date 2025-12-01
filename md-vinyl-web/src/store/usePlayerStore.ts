@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware'; // 讓設定可以存在 LocalStorage
 
 export const DEMO_PLAYLIST = [
   {
@@ -39,11 +40,15 @@ export const DEMO_PLAYLIST = [
 ];
 
 type ViewMode = 'vinyl' | 'coverflow';
+type ThemeMode = 'dark' | 'light';
 
 interface PlayerState {
   isPlaying: boolean;
   currentIndex: number;
   viewMode: ViewMode;
+  volume: number; // 0-100
+  isMuted: boolean;
+  theme: ThemeMode;
   
   togglePlay: () => void;
   setPlay: (playing: boolean) => void;
@@ -51,29 +56,49 @@ interface PlayerState {
   prevTrack: () => void;
   setTrackIndex: (index: number) => void;
   toggleViewMode: () => void;
+  setVolume: (val: number) => void;
+  toggleMute: () => void;
+  toggleTheme: () => void;
 }
 
-export const usePlayerStore = create<PlayerState>((set) => ({
-  isPlaying: false,
-  currentIndex: 0,
-  viewMode: 'vinyl',
+export const usePlayerStore = create<PlayerState>()(
+  persist(
+    (set) => ({
+      isPlaying: false,
+      currentIndex: 0,
+      viewMode: 'vinyl',
+      volume: 50,
+      isMuted: false,
+      theme: 'dark',
 
-  togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
-  setPlay: (playing) => set({ isPlaying: playing }),
-  
-  nextTrack: () => set((state) => ({
-    currentIndex: (state.currentIndex + 1) % DEMO_PLAYLIST.length,
-    isPlaying: true 
-  })),
-  
-  prevTrack: () => set((state) => ({
-    currentIndex: (state.currentIndex - 1 + DEMO_PLAYLIST.length) % DEMO_PLAYLIST.length,
-    isPlaying: true
-  })),
+      togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
+      setPlay: (playing) => set({ isPlaying: playing }),
+      
+      nextTrack: () => set((state) => ({
+        currentIndex: (state.currentIndex + 1) % DEMO_PLAYLIST.length,
+        isPlaying: true 
+      })),
+      
+      prevTrack: () => set((state) => ({
+        currentIndex: (state.currentIndex - 1 + DEMO_PLAYLIST.length) % DEMO_PLAYLIST.length,
+        isPlaying: true
+      })),
 
-  setTrackIndex: (index) => set({ currentIndex: index, isPlaying: true }),
-  
-  toggleViewMode: () => set((state) => ({ 
-    viewMode: state.viewMode === 'vinyl' ? 'coverflow' : 'vinyl' 
-  })),
-}));
+      setTrackIndex: (index) => set({ currentIndex: index, isPlaying: true }),
+      
+      toggleViewMode: () => set((state) => ({ 
+        viewMode: state.viewMode === 'vinyl' ? 'coverflow' : 'vinyl' 
+      })),
+
+      setVolume: (val) => set({ volume: val, isMuted: val === 0 }),
+      
+      toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+
+      toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+    }),
+    {
+      name: 'md-vinyl-storage', // 設定儲存在瀏覽器的 key
+      partialize: (state) => ({ volume: state.volume, viewMode: state.viewMode, theme: state.theme }), // 只儲存偏好設定
+    }
+  )
+);
