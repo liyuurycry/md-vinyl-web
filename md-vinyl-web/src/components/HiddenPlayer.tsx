@@ -1,5 +1,5 @@
 'use client';
-import ReactPlayer from 'react-player/youtube';
+import ReactPlayer from 'react-player';
 import { usePlayerStore, DEMO_PLAYLIST } from '@/store/usePlayerStore';
 import { useEffect, useState } from 'react';
 
