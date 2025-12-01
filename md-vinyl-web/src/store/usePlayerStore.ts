@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 
-// 寫死的 5 首熱門歌曲
 export const DEMO_PLAYLIST = [
   {
     id: '1',
@@ -46,7 +45,6 @@ interface PlayerState {
   currentIndex: number;
   viewMode: ViewMode;
   
-  // Actions
   togglePlay: () => void;
   setPlay: (playing: boolean) => void;
   nextTrack: () => void;

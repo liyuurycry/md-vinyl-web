@@ -20,8 +20,6 @@ export default function Home() {
 
   return (
     <main className="h-[100dvh] w-screen overflow-hidden bg-gray-900 relative text-white font-sans select-none">
-      
-      {/* 1. 動態模糊背景 */}
       <div 
         className="absolute inset-0 z-0 transition-all duration-1000 ease-in-out"
         style={{
@@ -33,10 +31,7 @@ export default function Home() {
         }}
       />
 
-      {/* 2. 主要內容區域 */}
       <div className="relative z-10 h-full flex flex-col">
-        
-        {/* 頂部導航 */}
         <header className="p-4 md:p-6 flex justify-between items-center w-full bg-gradient-to-b from-black/20 to-transparent">
           <div className="text-xs md:text-sm font-bold tracking-widest text-white/50">MD VINYL</div>
           <button 
@@ -48,12 +43,10 @@ export default function Home() {
           </button>
         </header>
 
-        {/* 中間顯示區 */}
         <div className="flex-1 overflow-hidden relative flex flex-col justify-center">
           {viewMode === 'vinyl' ? <VinylView /> : <CoverflowView />}
         </div>
 
-        {/* 底部控制列 */}
         <footer className="p-6 pb-10 w-full flex justify-center items-center bg-gradient-to-t from-black/40 to-transparent">
           <div className="flex items-center gap-6 md:gap-8 bg-black/40 backdrop-blur-xl px-8 py-3 md:px-10 md:py-4 rounded-full border border-white/10 shadow-2xl">
             <button onClick={prevTrack} className="text-white/70 hover:text-white transition-colors active:scale-90">

@@ -1,5 +1,5 @@
 'use client';
-import ReactPlayer from 'react-player';
+import ReactPlayer from 'react-player'; // 改回標準引入
 import { usePlayerStore, DEMO_PLAYLIST } from '@/store/usePlayerStore';
 import { useEffect, useState } from 'react';
 
@@ -8,7 +8,6 @@ export default function HiddenPlayer() {
   const currentSong = DEMO_PLAYLIST[currentIndex];
   const [isClient, setIsClient] = useState(false);
 
-  // 確保只在客戶端渲染，避免 Next.js 報錯
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -27,11 +26,11 @@ export default function HiddenPlayer() {
         onEnded={nextTrack}
         onPlay={() => setPlay(true)}
         onPause={() => setPlay(false)}
-        // iOS 需要 playsinline 才能在背景播放 (雖然有時候還是會被擋)
         playsinline={true} 
         config={{
           youtube: {
-            playerVars: { showinfo: 0, controls: 0, modestbranding: 1 }
+            // 加上 'as any' 解決 TypeScript 報錯
+            playerVars: { showinfo: 0, controls: 0, modestbranding: 1 } as any
           }
         }}
       />
