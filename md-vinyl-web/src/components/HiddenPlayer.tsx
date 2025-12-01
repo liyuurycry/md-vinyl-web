@@ -1,7 +1,9 @@
 'use client';
-import ReactPlayer from 'react-player'; // 改回標準引入
 import { usePlayerStore, DEMO_PLAYLIST } from '@/store/usePlayerStore';
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+
+const ReactPlayer = dynamic(() => import('react-player'), { ssr: false }) as any;
 
 export default function HiddenPlayer() {
   const { isPlaying, currentIndex, nextTrack, setPlay } = usePlayerStore();
@@ -30,7 +32,7 @@ export default function HiddenPlayer() {
         config={{
           youtube: {
             playerVars: { showinfo: 0, controls: 0, modestbranding: 1 }
-          } as any
+          }
         }}
       />
     </div>
