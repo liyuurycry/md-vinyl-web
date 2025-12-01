@@ -29,9 +29,8 @@ export default function HiddenPlayer() {
         playsinline={true} 
         config={{
           youtube: {
-            // 加上 'as any' 解決 TypeScript 報錯
-            playerVars: { showinfo: 0, controls: 0, modestbranding: 1 } as any
-          }
+            playerVars: { showinfo: 0, controls: 0, modestbranding: 1 }
+          } as any
         }}
       />
     </div>
