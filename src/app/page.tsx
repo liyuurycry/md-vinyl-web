@@ -2,24 +2,19 @@
 import { usePlayerStore, DEMO_PLAYLIST } from '@/store/usePlayerStore';
 import VinylView from '@/components/VinylView';
 import CoverflowView from '@/components/CoverflowView';
-import HiddenPlayer from '@/components/HiddenPlayer'; // ✅ 改回引入 HiddenPlayer
+import HiddenPlayer from '@/components/HiddenPlayer';
 import { Play, Pause, SkipBack, SkipForward, Disc, Layers, Sun, Moon, Volume2, VolumeX, ListMusic, Loader2, X, Palette, Settings, Key, Check, Copy, Sparkles, RefreshCw } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
 
 export default function Home() {
-  // 1. 防止 Hydration Mismatch
-  const [isMounted, setIsMounted] = useState(false);
-  
   const { 
     viewMode, toggleViewMode, isPlaying, togglePlay, nextTrack, prevTrack, setTrackIndex,
     currentIndex, volume, setVolume, isMuted, toggleMute,
     theme, setTheme, playlist, setPlaylist, groqApiKey, setGroqApiKey,
     isAiMode, toggleAiMode, toggleTheme, progress, setIsSeeking, setProgress
   } = usePlayerStore();
-
-  useEffect(() => { setIsMounted(true); }, []);
 
   const currentSong = DEMO_PLAYLIST[currentIndex];
   const isDark = theme.isDark;
@@ -28,11 +23,9 @@ export default function Home() {
   const [isPlaylistLoading, setIsPlaylistLoading] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  // mounted 後再設值
-  const [tempKey, setTempKey] = useState('');
-  useEffect(() => { if (isMounted) setTempKey(groqApiKey); }, [isMounted, groqApiKey]);
-
+  const [tempKey, setTempKey] = useState(groqApiKey);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  
   const [notification, setNotification] = useState<{message: string, type: 'info' | 'success' | 'error'} | null>(null);
 
   const aiTextColor = theme.text;
@@ -40,13 +33,18 @@ export default function Home() {
   const islandBg = isDark ? 'rgba(20, 20, 20, 0.75)' : 'rgba(255, 255, 255, 0.75)';
   const islandBorder = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
 
+  useEffect(() => { setTempKey(groqApiKey); }, [groqApiKey]);
+
   const showToast = (message: string, type: 'info' | 'success' | 'error' = 'info') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
   };
 
   const callGroqProxy = async (prompt: string) => {
-    if (!groqApiKey) { setShowSettings(true); throw new Error("NO_KEY"); }
+    if (!groqApiKey) { 
+        setShowSettings(true); 
+        throw new Error("NO_KEY"); 
+    }
     showToast("AI 正在思考中...", 'info');
     const res = await fetch('/api/groq', {
       method: 'POST',
@@ -62,34 +60,56 @@ export default function Home() {
   const fetchAiAmbience = useCallback(async () => {
     if (isThemeLoading) return;
     setIsThemeLoading(true);
+    
     const modeText = isDark ? "Dark/Night Mode" : "Light/Day Mode";
-    const prompt = `Analyze "${currentSong.title}" by "${currentSong.artist}". Generate a minimalist ${modeText} UI color palette. Return JSON keys: bgRGB(R,G,B), text(hex), secondary(hex), accent(hex), isDark(boolean - should be ${isDark}).`;
+    const prompt = `
+        Analyze "${currentSong.title}" by "${currentSong.artist}". 
+        Generate a minimalist ${modeText} UI color palette. 
+        Return JSON keys: bgRGB(R,G,B), text(hex), secondary(hex), accent(hex), isDark(boolean - should be ${isDark}).
+    `;
+    
     try {
         const json = await callGroqProxy(prompt);
         if (json) setTheme(JSON.parse(json));
-    } catch (e: any) { if(e.message !== "NO_KEY") showToast("AI 生成失敗", 'error'); } finally { setIsThemeLoading(false); }
+    } catch (e: any) { 
+        if(e.message !== "NO_KEY") showToast("AI 生成失敗", 'error');
+    } finally { setIsThemeLoading(false); }
   }, [currentSong, isDark, groqApiKey]);
 
-  // Effects
   useEffect(() => {
-    if (!isMounted) return;
     if (isAiMode) fetchAiAmbience();
-    if (showPlaylist) { setPlaylist([]); fetchAiPlaylist(); }
-  }, [currentSong.id, isMounted]); 
+    if (showPlaylist) {
+        setPlaylist([]);
+        fetchAiPlaylist();
+    }
+  }, [currentSong.id]); 
 
   useEffect(() => {
-    if (isMounted && isAiMode && !isThemeLoading) fetchAiAmbience();
+    if (isAiMode && !isThemeLoading) {
+        fetchAiAmbience();
+    }
   }, [isDark]);
 
-  const handleToggleAi = async () => { toggleAiMode(); if (!isAiMode) await fetchAiAmbience(); };
+  const handleToggleAi = async () => {
+    toggleAiMode();
+    if (!isAiMode) await fetchAiAmbience();
+  };
 
+  // ✅ 強化版 Prompt：要求「真實存在」的歌曲
   const fetchAiPlaylist = async () => {
     if (playlist.length > 0 && (playlist as any)[0]?._sourceId === currentSong.id) return;
     setIsPlaylistLoading(true);
+    
     const prompt = `
-    Recommend 5 songs similar to "${currentSong.title}" by "${currentSong.artist}". 
-    Return JSON with "songs": [{title, artist}].
-    Important: If the song title or artist name is in Chinese, you MUST use Traditional Chinese (繁體中文).`;
+      Recommend 5 REAL, EXISTING songs similar to "${currentSong.title}" by "${currentSong.artist}". 
+      
+      Strict Constraints:
+      1. The songs MUST genuinely exist on Spotify/YouTube. Do NOT invent fake songs.
+      2. Ensure the artist matches the song correctly.
+      3. Return ONLY valid JSON with a property "songs" which is an array of objects: { "title": "string", "artist": "string" }.
+      4. Important: If the song or artist is Chinese, you MUST use Traditional Chinese (繁體中文).
+    `;
+
     try {
         const json = await callGroqProxy(prompt);
         if (json) {
@@ -99,34 +119,60 @@ export default function Home() {
     } catch (e: any) { if(e.message !== "NO_KEY") showToast("歌單生成失敗", 'error'); } finally { setIsPlaylistLoading(false); }
   };
 
+  const handleSaveKey = () => {
+    setGroqApiKey(tempKey);
+    setShowSettings(false);
+    showToast("API Key 已儲存", 'success');
+  };
+
   const handleCopySong = (song: any, index: number) => {
     const text = `${song.title} - ${song.artist}`;
-    navigator.clipboard.writeText(text).then(() => { setCopiedIndex(index); showToast(`已複製: ${text}`, 'success'); setTimeout(() => setCopiedIndex(null), 2000); });
+    navigator.clipboard.writeText(text).then(() => {
+        setCopiedIndex(index);
+        showToast(`已複製: ${text}`, 'success');
+        setTimeout(() => setCopiedIndex(null), 2000);
+    });
   };
-  const handleSaveKey = () => { setGroqApiKey(tempKey); setShowSettings(false); showToast("API Key 已儲存", 'success'); };
 
-  // Seek Handler
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = Number(e.target.value);
     setProgress(val, 0, 0); 
-    // 發送事件給 HiddenPlayer
-    window.dispatchEvent(new CustomEvent('player-seek', { detail: { percent: val } }));
+    const event = new CustomEvent('player-seek', { detail: { percent: val } });
+    window.dispatchEvent(event);
   };
-
-  if (!isMounted) return <div className="w-screen h-screen bg-black" />;
 
   return (
     <main className="relative w-screen h-screen overflow-hidden font-sans select-none flex flex-col transition-colors duration-[1500ms] ease-out" style={{ backgroundColor: aiBgColor, color: aiTextColor }}>
       
-      {/* Background */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
          <div key={currentSong.cover} className={clsx("absolute inset-0 bg-cover bg-center transition-all duration-[2000ms] ease-linear", isAiMode && isPlaying ? "animate-breathe" : "scale-110")} style={{ backgroundImage: `url(${currentSong.cover})`, filter: 'blur(100px) saturate(1.2)', opacity: isAiMode ? 0.4 : 0.15 }} />
          <div className="absolute inset-0" style={{ background: isDark ? `radial-gradient(circle, transparent 20%, ${aiBgColor} 100%)` : `radial-gradient(circle, transparent 20%, ${aiBgColor} 100%)` }} />
       </div>
 
       <AnimatePresence>
-        {notification && ( <motion.div initial={{ opacity: 0, y: 20, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.9 }} className="fixed bottom-32 right-6 z-[100] px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md border flex items-center gap-3" style={{ backgroundColor: isDark ? 'rgba(20,20,20,0.8)' : 'rgba(255,255,255,0.8)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', color: aiTextColor }}>{notification.type === 'info' && <Loader2 size={16} className="animate-spin text-blue-400" />}{notification.type === 'success' && <Sparkles size={16} className="text-yellow-400" />}{notification.type === 'error' && <X size={16} className="text-red-400" />}<span className="text-xs font-bold tracking-wide">{notification.message}</span></motion.div>)}
-        {showSettings && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"><motion.div initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 10 }} className="w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-white/20 bg-[#1a1a1a] text-white"><div className="flex justify-between items-center mb-4"><div className="flex items-center gap-2"><Key size={18} className="text-yellow-400" /><h3 className="font-bold text-sm tracking-wide">GROQ API KEY</h3></div><button onClick={() => setShowSettings(false)}><X size={18} className="opacity-50 hover:opacity-100"/></button></div><input type="password" value={tempKey} onChange={(e) => setTempKey(e.target.value)} placeholder="Paste Groq API Key..." className="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-yellow-400/50 mb-6" /><button onClick={handleSaveKey} className="w-full bg-white text-black font-bold py-3 rounded-lg text-sm hover:bg-gray-200 flex items-center justify-center gap-2"><Check size={16} /> Save</button></motion.div></motion.div>)}
+        {notification && (
+            <motion.div initial={{ opacity: 0, y: 20, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.9 }} className="fixed bottom-32 right-6 z-[100] px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md border flex items-center gap-3" style={{ backgroundColor: isDark ? 'rgba(20,20,20,0.8)' : 'rgba(255,255,255,0.8)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', color: aiTextColor }}>
+                {notification.type === 'info' && <Loader2 size={16} className="animate-spin text-blue-400" />}
+                {notification.type === 'success' && <Sparkles size={16} className="text-yellow-400" />}
+                {notification.type === 'error' && <X size={16} className="text-red-400" />}
+                <span className="text-xs font-bold tracking-wide">{notification.message}</span>
+            </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showSettings && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+                <motion.div initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 10 }} className="w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-white/20 bg-[#1a1a1a] text-white">
+                    <div className="flex justify-between items-center mb-4">
+                        <div className="flex items-center gap-2"><Key size={18} className="text-yellow-400" /><h3 className="font-bold text-sm tracking-wide">GROQ API KEY</h3></div>
+                        <button onClick={() => setShowSettings(false)}><X size={18} className="opacity-50 hover:opacity-100"/></button>
+                    </div>
+                    <input type="password" value={tempKey} onChange={(e) => setTempKey(e.target.value)} placeholder="Paste Groq API Key..." className="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-yellow-400/50 mb-6" />
+                    <button onClick={handleSaveKey} className="w-full bg-white text-black font-bold py-3 rounded-lg text-sm hover:bg-gray-200 flex items-center justify-center gap-2"><Check size={16} /> Save</button>
+                </motion.div>
+            </motion.div>
+        )}
       </AnimatePresence>
 
       <div className={clsx("absolute z-40 w-72 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-top-right", showPlaylist ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none')} style={{ position: 'absolute', top: '80px', right: '24px' }}>
@@ -136,7 +182,22 @@ export default function Home() {
                 <button onClick={() => setShowPlaylist(false)} className="opacity-40 hover:opacity-100"><X size={16}/></button>
             </div>
             <div className="p-2">
-                {isPlaylistLoading ? (<div className="py-12 flex flex-col items-center justify-center gap-3 opacity-60"><Loader2 className="animate-spin" size={24} /><span className="text-xs font-medium">Thinking...</span></div>) : (<ul className="space-y-1">{playlist.map((song, idx) => (<li key={idx} onClick={() => handleCopySong(song, idx)} className="flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group cursor-pointer hover:bg-current hover:bg-opacity-10 active:scale-95" title="Click to Copy"><span className="text-xs font-mono opacity-30 w-4 flex justify-center">{copiedIndex === idx ? <Check size={12} className="text-green-400" /> : `0${idx + 1}`}</span><div className="flex-1 min-w-0 flex flex-col gap-0.5"><span className="text-sm font-medium truncate">{song.title}</span><span className="text-[10px] font-bold uppercase tracking-wider opacity-50 truncate">{song.artist}</span></div><Copy size={12} className="opacity-0 group-hover:opacity-40 transition-opacity" /></li>))}</ul>)}</div></div></div>
+                {isPlaylistLoading ? (
+                    <div className="py-12 flex flex-col items-center justify-center gap-3 opacity-60"><Loader2 className="animate-spin" size={24} /><span className="text-xs font-medium">Thinking...</span></div>
+                ) : (
+                    <ul className="space-y-1">
+                        {playlist.map((song, idx) => (
+                            <li key={idx} onClick={() => handleCopySong(song, idx)} className="flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group cursor-pointer hover:bg-current hover:bg-opacity-10 active:scale-95" title="Click to Copy">
+                                <span className="text-xs font-mono opacity-30 w-4 flex justify-center">{copiedIndex === idx ? <Check size={12} className="text-green-400" /> : `0${idx + 1}`}</span>
+                                <div className="flex-1 min-w-0 flex flex-col gap-0.5"><span className="text-sm font-medium truncate">{song.title}</span><span className="text-[10px] font-bold uppercase tracking-wider opacity-50 truncate">{song.artist}</span></div>
+                                <Copy size={12} className="opacity-0 group-hover:opacity-40 transition-opacity" />
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+         </div>
+      </div>
 
       <header className="relative z-30 px-6 py-6 flex justify-between items-center w-full max-w-[1600px] mx-auto">
           <div className={clsx("flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-md transition-colors", isDark ? "bg-white/5" : "bg-white/40")}>
@@ -146,7 +207,7 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <button onClick={toggleViewMode} className={clsx("p-2.5 rounded-full backdrop-blur-md transition-all active:scale-95", isDark ? "bg-white/5 hover:bg-white/10" : "bg-white/40 hover:bg-white/60")} title="Switch View">{viewMode === 'vinyl' ? <Layers size={18} strokeWidth={1.5} /> : <Disc size={18} strokeWidth={1.5} />}</button>
             <button onClick={handleToggleAi} className={clsx("p-2.5 rounded-full backdrop-blur-md transition-all active:scale-95 border", isAiMode ? "bg-white/10 border-white/20 text-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.3)]" : isDark ? "bg-white/5 border-transparent hover:bg-white/10 text-gray-400" : "bg-white/40 border-transparent text-gray-500")} title="Toggle AI Ambience">{isThemeLoading ? <Loader2 size={18} className="animate-spin"/> : <Palette size={18} strokeWidth={1.5} />}</button>
-            <button onClick={usePlayerStore.getState().toggleTheme} className={clsx("p-2.5 rounded-full backdrop-blur-md transition-all active:scale-95", isDark ? "bg-white/5 hover:bg-white/10" : "bg-white/40 hover:bg-white/60")} title={isAiMode ? "Regenerate AI Theme" : "Toggle Theme"}>{isAiMode ? <RefreshCw size={18} strokeWidth={1.5} className={clsx(isThemeLoading && "animate-spin")} /> : (isDark ? <Sun size={18} strokeWidth={1.5} /> : <Moon size={18} strokeWidth={1.5} />)}</button>
+            <button onClick={toggleTheme} className={clsx("p-2.5 rounded-full backdrop-blur-md transition-all active:scale-95", isDark ? "bg-white/5 hover:bg-white/10" : "bg-white/40 hover:bg-white/60")} title={isAiMode ? "Regenerate AI Theme" : "Toggle Theme"}>{isAiMode ? <RefreshCw size={18} strokeWidth={1.5} className={clsx(isThemeLoading && "animate-spin")} /> : (isDark ? <Sun size={18} strokeWidth={1.5} /> : <Moon size={18} strokeWidth={1.5} />)}</button>
             <button onClick={() => { setShowPlaylist(!showPlaylist); if (!showPlaylist) fetchAiPlaylist(); }} className={clsx("p-2.5 rounded-full backdrop-blur-md transition-all active:scale-95", isDark ? "bg-white/5 hover:bg-white/10" : "bg-white/40 hover:bg-white/60")} style={{ color: showPlaylist ? theme.accent : 'currentColor' }} title="AI Recommendations">{isPlaylistLoading ? <Loader2 size={18} className="animate-spin"/> : <ListMusic size={18} strokeWidth={1.5} />}</button>
             <button onClick={() => setShowSettings(true)} className={clsx("p-2.5 rounded-full backdrop-blur-md transition-all active:scale-95", isDark ? "bg-white/5 hover:bg-white/10" : "bg-white/40 hover:bg-white/60")} style={{ color: !groqApiKey ? '#ef4444' : 'currentColor' }} title="Settings"><Settings size={18} strokeWidth={1.5} /></button>
           </div>
@@ -159,16 +220,7 @@ export default function Home() {
       <div className="fixed bottom-0 left-0 w-full z-50 flex justify-center pb-6 md:pb-8 pointer-events-none">
         <footer className="pointer-events-auto backdrop-blur-3xl rounded-[2.5rem] transition-all duration-500 ease-out shadow-2xl relative overflow-visible" style={{ width: 'min(92%, 700px)', height: '84px', border: `1px solid ${islandBorder}`, backgroundColor: islandBg, color: aiTextColor }}>
             <div className="absolute -top-[1px] left-0 w-full h-[3px] bg-transparent overflow-visible group cursor-pointer" style={{ padding: '4px 0' }}>
-                <input 
-                    type="range" min={0} max={100} step={0.1} value={progress} 
-                    onChange={handleSeek} 
-                    // ✅ 支援手機觸控與滑鼠拖曳
-                    onMouseDown={() => setIsSeeking(true)} 
-                    onMouseUp={() => setIsSeeking(false)}
-                    onTouchStart={() => setIsSeeking(true)}
-                    onTouchEnd={() => setIsSeeking(false)}
-                    className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer" 
-                />
+                <input type="range" min={0} max={100} step={0.1} value={progress} onChange={handleSeek} onMouseDown={() => setIsSeeking(true)} onMouseUp={() => setIsSeeking(false)} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer" />
                 <div className="absolute top-[4px] left-[24px] right-[24px] h-[2px] bg-gray-500/20 rounded-full overflow-hidden pointer-events-none">
                     <div className="h-full transition-all duration-200 ease-linear" style={{ width: `${progress}%`, backgroundColor: isAiMode ? theme.accent : (isDark ? '#fff' : '#000') }} />
                 </div>
@@ -197,7 +249,6 @@ export default function Home() {
             </div>
         </footer>
       </div>
-      {/* ✅ 確保使用 HiddenPlayer */}
       <HiddenPlayer />
     </main>
   );
