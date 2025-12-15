@@ -6,6 +6,7 @@ import { clsx } from 'clsx';
 export default function VinylView() {
   const { isPlaying, currentIndex, theme } = usePlayerStore();
   const currentSong = DEMO_PLAYLIST[currentIndex];
+  // 唱臂依然隨主題變色，但黑膠本體強制為黑色
   const isDark = theme.isDark;
 
   return (
@@ -62,7 +63,7 @@ export default function VinylView() {
         <motion.div
           className={clsx(
             "w-full h-full rounded-full relative flex items-center justify-center transition-all duration-700",
-            // 陰影隨日夜變化
+            // 陰影：亮色模式下有明顯黑影，暗色模式下有微光
             isDark 
               ? "shadow-[0_20px_70px_-10px_rgba(0,0,0,0.8)] border border-white/5" 
               : "shadow-[0_30px_60px_-15px_rgba(0,0,0,0.35)] border border-black/5"
@@ -94,7 +95,7 @@ export default function VinylView() {
             />
           </div>
           
-          {/* ⚠️ 已確認移除所有中心孔洞 div */}
+          {/* ⚠️ 確認：此處已無任何中心黑點 div */}
           
         </motion.div>
       </div>

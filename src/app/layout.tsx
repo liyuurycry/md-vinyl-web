@@ -1,20 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import "./globals.css"
+import "./globals.css";
 
-// 禁止手機縮放，設定狀態列顏色
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#111827",
+  themeColor: "#000000",
 };
 
 export const metadata: Metadata = {
   title: "MD Vinyl Web",
-  description: "Web-based Vinyl Player",
+  description: "Web-based Vinyl Player with Groq AI",
   appleWebApp: {
-    capable: true, // 允許加入主畫面後全螢幕
+    capable: true,
     statusBarStyle: "black-translucent",
     title: "MD Vinyl",
   },
@@ -26,7 +25,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // ⚠️ 關鍵：加上 suppressHydrationWarning
+    // 這能解決因為 Theme 切換導致的 class/style 不匹配錯誤
+    <html lang="en" suppressHydrationWarning>
       <body className="antialiased">{children}</body>
     </html>
   );

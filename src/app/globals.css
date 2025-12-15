@@ -60,7 +60,7 @@ body {
   transform-style: preserve-3d;
 }
 
-/* ⚠️ 新增：背景呼吸動畫 */
+/* 呼吸動畫 */
 @keyframes breathe {
   0%, 100% { opacity: 0.3; transform: scale(1.1); }
   50% { opacity: 0.6; transform: scale(1.35); }
