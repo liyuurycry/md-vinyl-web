@@ -86,7 +86,10 @@ export default function Home() {
   const fetchAiPlaylist = async () => {
     if (playlist.length > 0 && (playlist as any)[0]?._sourceId === currentSong.id) return;
     setIsPlaylistLoading(true);
-    const prompt = `Recommend 5 songs similar to "${currentSong.title}" by "${currentSong.artist}". Return JSON with "songs": [{title, artist}]. Important: If Chinese, use Traditional Chinese.`;
+    const prompt = `
+    Recommend 5 songs similar to "${currentSong.title}" by "${currentSong.artist}". 
+    Return JSON with "songs": [{title, artist}].
+    Important: If the song title or artist name is in Chinese, you MUST use Traditional Chinese (繁體中文).`;
     try {
         const json = await callGroqProxy(prompt);
         if (json) {
