@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import "./globals.css";
+import "./globals.css"
 
 // 禁止手機縮放，設定狀態列顏色
 export const viewport: Viewport = {

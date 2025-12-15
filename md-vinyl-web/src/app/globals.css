@@ -4,57 +4,68 @@
 
 :root {
   --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 0, 0, 0;
-  --background-end-rgb: 0, 0, 0;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background: #000;
 }
 
-/* 雜訊紋理 (Noise Texture) - 增加質感 */
-.bg-noise {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-  z-index: 5;
-  opacity: 0.05;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-}
-
-/* 黑膠唱片紋理 */
-.vinyl-grooves {
-  background:
-    repeating-radial-gradient(
-      #111 0, 
-      #111 2px, 
-      #222 3px, 
-      #222 4px
-    );
-}
-
-/* 黑膠反光 */
-.vinyl-shine {
-  background: conic-gradient(
-    transparent 0deg,
-    rgba(255, 255, 255, 0.1) 45deg,
-    transparent 70deg,
-    transparent 180deg,
-    rgba(255, 255, 255, 0.1) 225deg,
-    transparent 250deg
+/* 黑膠溝槽紋理 */
+.vinyl-texture {
+  background: repeating-radial-gradient(
+    #111 0, 
+    #111 2px, 
+    #1c1c1c 3px, 
+    #1c1c1c 4px
   );
 }
 
-/* 隱藏捲軸 */
-::-webkit-scrollbar {
-  display: none;
+.vinyl-texture-light {
+  background: repeating-radial-gradient(
+    #e5e5e5 0, 
+    #e5e5e5 2px, 
+    #d4d4d4 3px, 
+    #d4d4d4 4px
+  );
+}
+
+/* 動態反光 */
+.vinyl-shine {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(255, 255, 255, 0.1) 45deg,
+    transparent 70deg,
+    transparent 110deg,
+    rgba(255, 255, 255, 0.1) 135deg,
+    transparent 160deg,
+    transparent 200deg,
+    rgba(255, 255, 255, 0.1) 225deg,
+    transparent 250deg,
+    transparent 290deg,
+    rgba(255, 255, 255, 0.1) 315deg,
+    transparent 340deg
+  );
+  mix-blend-mode: overlay;
+  filter: blur(10px);
+}
+
+/* 3D 透視容器 */
+.perspective-container {
+  perspective: 1000px;
+  overflow-x: hidden;
+}
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* ⚠️ 新增：背景呼吸動畫 */
+@keyframes breathe {
+  0%, 100% { opacity: 0.3; transform: scale(1.1); }
+  50% { opacity: 0.6; transform: scale(1.35); }
+}
+
+.animate-breathe {
+  animation: breathe 6s ease-in-out infinite;
 }
