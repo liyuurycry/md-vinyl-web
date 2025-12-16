@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MD Vinyl Web
 
-## Getting Started
+Next.js music player application combining vinyl record visuals with YouTube streaming. Integrates Groq AI for dynamic UI theming and playlist recommendations.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+*   **Visual Modes**: Switchable Vinyl mode with physical animations and 3D Coverflow mode.
+*   **AI Integration**: Uses Groq API (Llama 3 model) to analyze song metadata for real-time UI color palette generation and similar song recommendations.
+*   **Audio Engine**: Powered by YouTube IFrame API (via react-youtube). Supports background playback and lock screen controls using the Media Session API.
+*   **Security**: API keys are transmitted via a Next.js backend proxy to prevent client-side exposure. Keys are stored in local storage.
+*   **Interface**: Responsive "Floating Island" design with Tailwind CSS.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+*   **Framework**: Next.js 14 (App Router)
+*   **Language**: TypeScript
+*   **Styling**: Tailwind CSS v3, Framer Motion
+*   **State Management**: Zustand (with persistence)
+*   **Audio**: react-youtube
+*   **AI**: Groq API
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Installation & Setup
 
-## Learn More
+1.  **Install dependencies**
+    ```bash
+    npm install
+    ```
 
-To learn more about Next.js, take a look at the following resources:
+2.  **Start development server**
+    ```bash
+    npm run dev
+    ```
+    Access the application at http://localhost:3000
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3.  **Configure AI**
+    *   Obtain an API Key from the Groq Console.
+    *   Click the Settings icon in the application header.
+    *   Enter and save the API Key (stored locally in the browser).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+*   `src/app/api/groq/`: Backend proxy for API requests.
+*   `src/components/`: UI components (VinylView, CoverflowView, HiddenPlayer).
+*   `src/store/`: State management (Zustand).
+*   `src/app/page.tsx`: Main application logic.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is optimized for deployment on Vercel.
+*   Ensure the deployment uses HTTPS (required for Media Session API and background playback features).
+*   No server-side environment variables are required for the AI features as the key is provided by the user client-side.
+
+## License
+
+MIT License
